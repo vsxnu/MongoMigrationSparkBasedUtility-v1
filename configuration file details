@@ -1,0 +1,95 @@
+This page contains an explanation for each property of the configuration file.
+
+"sourceServer": 
+{ 
+  "type": "MONGODB",            -> you can leave this default.
+  "name": "sourceServer",       -> source MongoDB server. You can use the default value.
+  "url": "mongodb://.."         -> source MongoDB connection string.
+},
+"destinationServer": 
+{
+  "type": "MONGODB",            -> you can leave this default.
+  "name": "destinationServer",  -> target server name. You can leave this default.
+  "url": "mongodb://.."         -> target Cosmos DB RU or VCore connection string.
+},
+"intermediateServer":            -> It’s crucial to delete the intermediate database(s) promptly after migration. Failing to do so will result in higher costs.
+{
+  "type": "COSMOSDB",            -> This is the intermedetiate Cosmos DB NoSQL account. You can leave this default.
+  "name": "intermediateServer",  -> This is the intermedetiate name. You can leave this default.
+  "url": "https://..",           -> This is the FQDN of your Cosmos DB NoSQL account.
+  "key": ".."                    -> This is the Primary Key of your Cosmos DB NoSQL account.
+},
+"statusServer": {                -> It’s crucial to delete the status database(s) promptly after migration. Failing to do so will result in higher costs.
+  "type": "COSMOSDB",            -> This is the status Cosmos DB NoSQL account. You can leave this default.
+  "name": "statusServer",        -> This is the status name. You can leave this default.
+  "url": "https://..",           -> This is the FQDN of your Cosmos DB NoSQL account.
+  "key": ".."                    -> This is the Primary Key of your Cosmos DB NoSQL account.
+}
+"tasks": [
+{
+    "migrationUnit": "COLLECTION",         -> Migration scope. Options are SERVER, DATABASE, COLLECTION.  
+    "source": {
+        "serverName": "sourceServer",      -> This refers to the source server section above.
+        "databases": [
+            "db1"                          -> Database contain the database(s) to migrate.
+        ],
+        "collections": [
+          "coll1", "coll2"                -> Specify the collection(s) which must be migrated.
+        ]
+    },
+    "destination": {
+        "serverName": "destinationServer",
+        "databases": [
+            "db1"                          -> Must have same value as source section above.
+        ],
+        "collections": [
+          "coll1", "coll2"                -> Must have same value as source section above.
+             ],
+        "throughput": 1000,              -> Number of RU's when bulk migration is completed. This value is ignored when collection is precreated. Not Required when migrating to vCore.
+        "migrationThroughput":10000,      -> Number of RU's used during bulk migration. This value is ignored when collection is precreated. Not Required when migrating to vCore
+        "scaling": "AUTOSCALE",           -> RU scaling. Option are MANUAL, AUTOSCALE. This value is ignored when collection is precreated. Not Required when migrating to vCore
+        "shardKey": "shardkey"            -> When defined the collection will be created with this shard key value. This value is ignored when collection is precreated. Not Required when migrating to vCore
+        "mongoType": "VCORE"              -> The offering type of destination MongoDB. Options are RU, VCORE.
+
+    },
+    "intermediate": {                     
+        "serverName": "intermediateServer",
+        "databases": [
+            "db1"                         -> Must have same value as source section above.
+        ],
+        "collections": [
+          "coll1", "coll2"                -> Must have same value as source section above.
+    ],
+        "throughput": 10000               -> Number of RU's for the collections in the intermediate NoSQL account.
+    },
+    "excludedCollections": [
+        "system.views"                    -> Array containing all collections and views wich will be excluded explicitly from migration. Not Required when migrationUnit is COLLECTION.
+    ],
+    "uniqueConstraintViolationHandling":"IGNORE",   -> Determine how to handle unique constraint exceptions. RANDOM_ID will assume that constraint violation is because of a duplicate _id field and will replace the _id field with a new randomly generated ObjectId. IGNORE will just log the erroneous record and continue the migration.
+    "indexCreation":"ALL_INDEXES",                -> Define if and which indexes to create during migration Options are "NONE", "ALL_INDEXES", "ONLY_UNIQUE_INDEXES", "ONLY_NON_UNIQUE_INDEXES".
+    "mongoImplementationType": "MONGODB_API_FOR_COSMOSDB",  ->Add this if you are migrating from Cosmos DB Mongo DB RU or use "MONGODB_API_FOR_DOCUMENTDB" if source is AWS DocumentDB.
+    "enableAnalyticalStore":true,                -> Enable Analytical Store for the collection(s) to migrate.This value is ignored when collection is precreated. NOT Required when migrating to vCore.
+    "filter":"{field:{$lt:24}}",                -> Migrate only documents which meet the condition in the filter.
+    "idUnique" : true,                          -> This is used for online migration only and forces the migration tool to only identify existing records based on _id and not based on other existing unique indexes.
+    "partitioner":"SAMPLE",                     -> The partitioner used by Spark. Default is SAMPLE.
+    "samplesPerPartition": 10,                  -> Number of sanples per partition. 10 is default. Higher values may result in better distribution across Spark partitions. Change this value only based on the partition log output.
+    "partitionSizeMB" : 64,                     -> Defines the size of each partition. default value is 64. Change this value only based on the partition log output.
+    "enablePartitionLog" : true                -> Enable Spark partition logging. This can be used to identify data skewing in Spark. if you have uneven sizes of partitions tweak the number of samples and partition size.
+
+  }
+  ],
+"status": {
+  "serverName": "statusServer",                 -> This refers to the source server section above.
+  "database": "migration-database,              -> Database name in the Cosmos DB NoSQL account which is used to store migration state.
+  "collection": "migration_status",             -> Collection name  in the Cosmos DB NoSQL account which is used to store migration status.
+  "throughput": 1000                            -> Number of RU's for the status collections in the status Cosmos DB NoSQL account.
+},
+"copyPartitions": 100,                          -> This parameter is used to define how many partitionsare used during offline migration. Default value is 100.
+"copyBatchSize": 30,                            -> This parameter defines the batch size that is used during offline migration. Default value is 30.
+"streamingStrategy":"Restrictive",              -> 
+"streamingPartitions": 100,                     -> This parameter is used to define how many partitionsare used during online migration. Default value is 100.
+"streamingBatchSize": 30,                       -> This parameter defines the batch size that is used during online migration. Default value is 30.
+"startStreamToIntermediate": true,              -> When set to True online migration is enabled. False for offline migratio only. 
+"startBulkCopy": true,                          -> To enable bulk copy.
+"startStreamToDestination": true,               -> When set to True online migration is enabled. False for offline migratio only.
+"offHeapMemory":false                           -> Defines whether off heap memory should be used. This limits the amount of memory under garbage collector management. Default value is false.

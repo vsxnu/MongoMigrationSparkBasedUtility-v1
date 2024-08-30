@@ -1,0 +1,72 @@
+{
+  "version": 2,
+  "servers": {
+      "sourceServer": {
+          "type": "MONGODB",
+          "name": "sourceServer",
+          "url": "mongodb://#####"
+      },
+      "destinationServer": {
+          "type": "MONGODB",
+          "name": "destinationServer",
+          "url": "mongodb://#####"
+      },
+      "intermediateServer": {
+          "type": "COSMOSDB",
+          "name": "intermediateServer",
+          "url": "https://#####.documents.azure.com:443/",
+          "key": "#####"
+      },
+      "statusServer": {
+          "type": "COSMOSDB",
+          "name": "statusServer",
+          "url": "https://#####.documents.azure.com:443/",
+          "key": "#####"
+      }
+  },
+  "tasks": [
+      {
+          "migrationUnit": "DATABASE",
+          "source": {
+              "serverName": "sourceServer",
+              "databases": [
+                  "MIGTestDB"
+              ]
+          },
+          "destination": {
+              "serverName": "destinationServer",
+              "databases": [
+                  "MIGTestDB"
+              ],
+              "mongoType": "VCORE"
+          },
+          "intermediate": {
+              "serverName": "intermediateServer",
+              "databases": [
+                  "MIGTestDB"
+              ],
+              "throughput": 1000
+          },
+          "excludedCollections": [
+              "system.views"
+          ],
+          "uniqueConstraintViolationHandling":"IGNORE",
+          "indexCreation":"ALL_INDEXES",
+          "batchCount":30
+      }
+  ],
+  "status": {
+      "serverName": "statusServer",
+      "database": "StatusDB",
+      "collection": "StatusCollection",
+      "throughput": 1000
+  },
+  "copyPartitions": 100,
+  "copyBatchSize": 30,
+  "streamingPartitions": 100,
+  "streamingBatchSize": 30,
+  "startStreamToIntermediate": false,
+  "startBulkCopy": true,
+  "startStreamToDestination": false,
+  "offHeapMemory": false
+}
